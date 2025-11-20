@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'screens/start_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/account_screen.dart';
+import 'screens/add_room_screen.dart';
+import 'screens/room_detail_screen.dart';
 
 void main() {
   runApp(const TripRoomApp());
@@ -51,6 +53,40 @@ class TripRoomApp extends StatelessWidget {
             }
             return MaterialPageRoute(
               builder: (_) => AccountScreen(userId: userId, id: id),
+            );
+          case '/add_room':
+            final args = settings.arguments as Map<String, dynamic>?;
+            final userId = args?['userId'] as String?;
+            final nickname = args?['nickname'] as String?;
+            final id = args?['id'] as String?;
+
+            if (userId == null || nickname == null || id == null) {
+              return MaterialPageRoute(builder: (_) => const StartScreen());
+            }
+            return MaterialPageRoute(
+              builder: (_) =>
+                  AddRoomScreen(userId: userId, nickname: nickname, id: id),
+            );
+          case '/room_detail':
+            final args = settings.arguments as Map<String, dynamic>?;
+            final roomId = args?['roomId'] as String?;
+            final userId = args?['userId'] as String?;
+            final nickname = args?['nickname'] as String?;
+            final id = args?['id'] as String?;
+
+            if (roomId == null ||
+                userId == null ||
+                nickname == null ||
+                id == null) {
+              return MaterialPageRoute(builder: (_) => const StartScreen());
+            }
+            return MaterialPageRoute(
+              builder: (_) => RoomDetailScreen(
+                roomId: roomId,
+                userId: userId,
+                nickname: nickname,
+                id: id,
+              ),
             );
           default:
             // 정의되지 않은 라우트로 이동 시 처리

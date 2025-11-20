@@ -24,12 +24,16 @@ class _StartScreenState extends State<StartScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          SizedBox.expand(
-            child: Image.asset(
-              'assets/main_background.jpg',
-              fit: BoxFit.cover,
-              color: Colors.black.withValues(alpha: 0.4),
-              colorBlendMode: BlendMode.darken,
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: const AssetImage('assets/main_background.jpg'),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withOpacity(0.4),
+                  BlendMode.darken,
+                ),
+              ),
             ),
           ),
           SafeArea(

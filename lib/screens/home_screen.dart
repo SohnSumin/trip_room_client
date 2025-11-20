@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../widgets/home_header.dart';
+import '../widgets/invitation_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId; // 로그인 후 전달받는 userId
@@ -93,12 +94,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      endDrawer: InvitationDrawer(
+        userId: widget.userId,
+        onInvitationHandled: _fetchUserRooms,
+      ),
       body: SafeArea(
         child: Column(
           children: [
             HomeHeader(
               userId: widget.userId,
               nickname: widget.nickname,
+              id: widget.id,
               onLogoTap: () {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
@@ -174,7 +180,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     IconButton(
                       icon: const Icon(Icons.add_box),
                       color: Colors.white,
-                      onPressed: () {},
+                      onPressed: () async {
+                        final result = await Navigator.pushNamed(
+                          context,
+                          '/add_room',
+                          arguments: {
+                            'userId': widget.userId,
+                            'nickname': widget.nickname,
+                            'id': widget.id,
+                          },
+                        );
+                        // 방 생성이 완료되면 (true가 반환되면) 목록을 새로고침합니다.
+                        if (result == true) _fetchUserRooms();
+                      },
                     ),
                     IconButton(
                       icon: const Icon(Icons.person),
@@ -198,51 +216,72 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTravelRoomCard(dynamic room) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFFF6000), width: 1),
-      ),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.grey[300],
-                image: const DecorationImage(
-                  image: AssetImage('assets/room_thumbnail.png'),
-                  fit: BoxFit.cover,
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/room_detail',
+          arguments: {
+            'roomId': room['_id'],
+            'userId': widget.userId,
+            'nickname': widget.nickname,
+            'id': widget.id,
+          },
+        );
+      },
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFFF6000), width: 1),
+        ),
+        color: Colors.white,
+        clipBehavior: Clip.antiAlias, // 이미지가 Card 밖으로 나가지 않도록
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: room['imageId'] != null
+                      ? Image.network(
+                          '$baseUrl/api/images/${room['imageId']}',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(color: Colors.grey[300]),
+                        )
+                      : Container(color: Colors.grey[300]),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    room['title'] ?? '제목 없음',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      room['title'] ?? '제목 없음',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${room['country'] ?? ''} / ${room['startDate'] ?? ''} ~ ${room['endDate'] ?? ''}',
-                    style: const TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      '${room['country'] ?? ''} / ${room['startDate'] ?? ''} ~ ${room['endDate'] ?? ''}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
