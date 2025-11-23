@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'screens/start_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/account_screen.dart';
 import 'screens/add_room_screen.dart';
 import 'screens/room_detail_screen.dart';
 
-void main() {
+Future<void> main() async {
+  // Flutter 엔진과 위젯 트리가 바인딩되었는지 확인합니다.
+  WidgetsFlutterBinding.ensureInitialized();
+  // 'ko_KR' 로케일의 날짜/시간 형식 데이터를 초기화합니다.
+  await initializeDateFormatting('ko_KR');
+
   runApp(const TripRoomApp());
 }
 
@@ -45,8 +51,8 @@ class TripRoomApp extends StatelessWidget {
             );
           case '/account':
             final args = settings.arguments as Map<String, dynamic>?;
-            final userId = args?['userId'] as String?;
-            final id = args?['id'] as String?;
+            final userId = args?['userId'] as String?; // null일 수 있음
+            final id = args?['id'] as String?; // null일 수 있음
 
             if (userId == null || id == null) {
               return MaterialPageRoute(builder: (_) => const StartScreen());
@@ -56,9 +62,9 @@ class TripRoomApp extends StatelessWidget {
             );
           case '/add_room':
             final args = settings.arguments as Map<String, dynamic>?;
-            final userId = args?['userId'] as String?;
-            final nickname = args?['nickname'] as String?;
-            final id = args?['id'] as String?;
+            final userId = args?['userId'] as String?; // null일 수 있음
+            final nickname = args?['nickname'] as String?; // null일 수 있음
+            final id = args?['id'] as String?; // null일 수 있음
 
             if (userId == null || nickname == null || id == null) {
               return MaterialPageRoute(builder: (_) => const StartScreen());
@@ -69,10 +75,10 @@ class TripRoomApp extends StatelessWidget {
             );
           case '/room_detail':
             final args = settings.arguments as Map<String, dynamic>?;
-            final roomId = args?['roomId'] as String?;
-            final userId = args?['userId'] as String?;
-            final nickname = args?['nickname'] as String?;
-            final id = args?['id'] as String?;
+            final roomId = args?['roomId'] as String?; // null일 수 있음
+            final userId = args?['userId'] as String?; // null일 수 있음
+            final nickname = args?['nickname'] as String?; // null일 수 있음
+            final id = args?['id'] as String?; // null일 수 있음
 
             if (roomId == null ||
                 userId == null ||

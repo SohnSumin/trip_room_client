@@ -7,6 +7,7 @@ import '../widgets/home_header.dart';
 import 'update_room_screen.dart';
 import '../widgets/invitation_drawer.dart';
 import '../widgets/people_card.dart';
+import 'trip_schedule_screen.dart';
 
 class RoomDetailScreen extends StatefulWidget {
   final String roomId;
@@ -31,6 +32,10 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   Map<String, dynamic>? roomDetails;
   List<dynamic> members = [];
   bool isLoading = true;
+
+  // 방장 여부를 판단하는 중앙 로직
+  bool get _isOwner =>
+      roomDetails != null && widget.id == roomDetails!['ownerLoginId'];
 
   @override
   void initState() {
@@ -65,6 +70,56 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
         isLoading = false;
       });
       // 에러 처리
+    }
+  }
+
+  Future<void> _deleteRoom() async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('여행방 삭제'),
+        content: const Text('정말로 이 여행방을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final response = await http.delete(
+          Uri.parse('$baseUrl/api/rooms/${widget.roomId}'),
+        );
+
+        if (response.statusCode == 200 && mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('여행방이 삭제되었습니다.')));
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/home',
+            (route) => false,
+            arguments: {
+              'userId': widget.userId,
+              'nickname': widget.nickname,
+              'id': widget.id,
+            },
+          );
+        } else {
+          throw Exception('Failed to delete room');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('삭제 실패: $e')));
+      }
     }
   }
 
@@ -138,6 +193,21 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                                 _buildPeopleCard(),
                                 const SizedBox(height: 20),
                                 _buildPicturesCard(),
+                                const SizedBox(height: 40),
+                                if (_isOwner)
+                                  Center(
+                                    child: TextButton(
+                                      onPressed: _deleteRoom,
+                                      child: const Text(
+                                        '여행방 삭제',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -180,11 +250,11 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                     color: Color(0xFFFF6000),
                   ),
                 ),
-                if (onEdit != null)
+                // 방장에게만 수정 버튼이 보이도록 수정
+                if (onEdit != null && _isOwner)
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 20),
                     onPressed: onEdit,
-                    tooltip: '수정하기',
                   ),
               ],
             ),
@@ -292,7 +362,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     }
     return PeopleCard(
       roomId: widget.roomId,
-      currentUserId: widget.userId,
+      currentUserId: widget.id, // DB _id를 전달하여 ownerId와 비교하도록 수정
       ownerLoginId: roomDetails!['ownerLoginId'],
       ownerId: roomDetails!['ownerId'],
       members: members,
@@ -362,7 +432,22 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
               icon: const Icon(Icons.calendar_today_outlined),
               color: Colors.white,
               onPressed: () {
-                // TODO: 스케줄 화면으로 이동
+                if (roomDetails != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TripScheduleScreen(
+                        // 필요한 파라미터 추가
+                        roomId: widget.roomId,
+                        startDate: roomDetails!['startDate'],
+                        endDate: roomDetails!['endDate'],
+                        userId: widget.userId,
+                        nickname: widget.nickname,
+                        id: widget.id,
+                      ),
+                    ),
+                  );
+                }
               },
             ),
           ],

@@ -56,7 +56,7 @@ class _PeopleCardState extends State<PeopleCard> {
       final response = await http.post(
         Uri.parse('$baseUrl/api/rooms/${widget.roomId}/remove_member'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'userId': member['id']}),
+        body: jsonEncode({'userId': member['_id']}),
       );
 
       if (response.statusCode == 200) {
@@ -103,7 +103,7 @@ class _PeopleCardState extends State<PeopleCard> {
       final response = await http.post(
         Uri.parse('$baseUrl/api/rooms/${widget.roomId}/change_owner'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'newOwnerId': member['id']}),
+        body: jsonEncode({'newOwnerId': member['_id']}),
       );
 
       if (response.statusCode == 200) {
@@ -232,6 +232,7 @@ class _PeopleCardState extends State<PeopleCard> {
                     color: Color(0xFFFF6000),
                   ),
                 ),
+                // 멤버 초대는 누구나 할 수 있도록 수정
                 IconButton(
                   icon: const Icon(Icons.add, size: 24),
                   onPressed: _showInviteDialog,
