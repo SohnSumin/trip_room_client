@@ -8,6 +8,7 @@ import 'update_room_screen.dart';
 import '../widgets/invitation_drawer.dart';
 import '../widgets/people_card.dart';
 import 'trip_schedule_screen.dart';
+import '../widgets/checklist_card.dart';
 
 class RoomDetailScreen extends StatefulWidget {
   final String roomId;
@@ -192,7 +193,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                                 const SizedBox(height: 20),
                                 _buildPeopleCard(),
                                 const SizedBox(height: 20),
-                                _buildPicturesCard(),
+                                ChecklistCard(roomId: widget.roomId),
                                 const SizedBox(height: 40),
                                 if (_isOwner)
                                   Center(
@@ -367,30 +368,6 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
       ownerId: roomDetails!['ownerId'],
       members: members,
       onMembersChanged: _fetchRoomData,
-    );
-  }
-
-  Widget _buildPicturesCard() {
-    return _buildCustomCard(
-      title: 'PICTURES',
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-        ),
-        itemCount: 9, // 예시로 9개의 아이템
-        itemBuilder: (context, index) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(8),
-            ),
-          );
-        },
-      ),
     );
   }
 

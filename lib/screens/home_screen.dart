@@ -90,6 +90,53 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // D-Day 상태를 계산하고 스타일을 결정하는 위젯
+  Widget _buildDdayStatus(String startDateStr, String endDateStr) {
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final startDate = DateTime.parse(startDateStr);
+      final endDate = DateTime.parse(endDateStr);
+
+      String statusText;
+      Color backgroundColor;
+      Color textColor;
+
+      if (today.isBefore(startDate)) {
+        final difference = startDate.difference(today).inDays;
+        statusText = 'D-$difference';
+        backgroundColor = const Color(0xFFFFEFE5); // Light Orange
+        textColor = const Color(0xFFFF6000); // Main Orange
+      } else if (today.isAfter(endDate)) {
+        statusText = '여행 종료';
+        backgroundColor = Colors.grey.shade200;
+        textColor = Colors.grey.shade600;
+      } else {
+        statusText = '여행 중';
+        backgroundColor = Colors.blue.shade100;
+        textColor = Colors.blue.shade800;
+      }
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          statusText,
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
+      );
+    } catch (e) {
+      return const SizedBox.shrink(); // 날짜 파싱 오류 시 빈 위젯 반환
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -262,13 +309,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      room['title'] ?? '제목 없음',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            room['title'] ?? '제목 없음',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildDdayStatus(room['startDate'], room['endDate']),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(
