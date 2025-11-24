@@ -86,15 +86,15 @@ class _HomeHeaderState extends State<HomeHeader> {
             child: Column(
               children: [
                 const CircleAvatar(
-                  radius: 15,
+                  radius: 14,
                   backgroundImage: AssetImage(
                     'assets/profile_placeholder.jpg',
                   ), //일단은 jpg로 고정
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   widget.nickname,
-                  style: const TextStyle(fontSize: 12, color: Colors.black),
+                  style: const TextStyle(fontSize: 11, color: Colors.black),
                 ),
               ],
             ),

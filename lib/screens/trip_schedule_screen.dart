@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../widgets/home_header.dart';
 import 'add_schedule_screen.dart';
 import '../widgets/schedule_grid.dart';
+import 'schedule_feedback.dart';
 import 'update_schedule_screen.dart';
 
 class TripScheduleScreen extends StatefulWidget {
@@ -239,6 +240,24 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
     );
   }
 
+  void _handleAIFeedback() {
+    Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ScheduleFeedbackScreen(
+          roomId: widget.roomId,
+          userId: widget.userId,
+          nickname: widget.nickname,
+          id: widget.id,
+        ),
+      ),
+    ).then((result) {
+      if (result == true) {
+        _fetchScheduleData(); // AI 추천 일정이 적용되었으므로 새로고침
+      }
+    });
+  }
+
   Widget _buildBottomNavBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -289,10 +308,23 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showDaySelectionDialog,
-        backgroundColor: const Color(0xFFFF6000),
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'ai_feedback',
+            onPressed: _handleAIFeedback,
+            backgroundColor: Colors.blue,
+            child: const Icon(Icons.auto_awesome, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            heroTag: 'add_schedule',
+            onPressed: _showDaySelectionDialog,
+            backgroundColor: const Color(0xFFFF6000),
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(

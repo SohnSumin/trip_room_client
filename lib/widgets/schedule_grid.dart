@@ -16,10 +16,10 @@ class ScheduleGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const timeCellHeight = 30.0; // 1시간 높이
-    final minuteHeight = timeCellHeight / 12; // 5분당 높이
-    const dateCellWidth = 80.0;
-    const timeLabelWidth = 50.0;
+    const timeCellHeight = 45.0; // 1시간 높이
+    final minuteHeight = timeCellHeight / 14; // 5분당 높이
+    const dateCellWidth = 130.0;
+    const timeLabelWidth = 60.0;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,

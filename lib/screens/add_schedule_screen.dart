@@ -153,23 +153,13 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false, // 기본 뒤로가기 버튼 숨기기
-        flexibleSpace: HomeHeader(
-          userId: widget.userId,
-          nickname: widget.nickname,
-          id: widget.id,
-        ),
-      ),
       body: SafeArea(
         child: Column(
           children: [
-            IconButton(
-              alignment: Alignment.centerLeft,
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () => Navigator.of(context).pop(),
+            HomeHeader(
+              userId: widget.userId,
+              nickname: widget.nickname,
+              id: widget.id,
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16.0),
