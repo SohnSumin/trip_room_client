@@ -14,12 +14,38 @@ class ScheduleGrid extends StatelessWidget {
     required this.onDelete,
   });
 
+  // 일정 종류에 따라 아이콘을 반환하는 헬퍼 함수
+  IconData _getIconForTitle(String title) {
+    if (title.contains('식사') ||
+        title.contains('아침') ||
+        title.contains('점심') ||
+        title.contains('저녁')) {
+      return Icons.restaurant;
+    } else if (title.contains('공항') ||
+        title.contains('비행기') ||
+        title.contains('입국') ||
+        title.contains('출국')) {
+      return Icons.flight;
+    } else if (title.contains('숙소') ||
+        title.contains('호텔') ||
+        title.contains('체크인')) {
+      return Icons.hotel;
+    } else if (title.contains('구경') ||
+        title.contains('관광') ||
+        title.contains('투어')) {
+      return Icons.camera_alt;
+    } else if (title.contains('쇼핑')) {
+      return Icons.shopping_bag;
+    }
+    return Icons.location_on; // 기본 아이콘
+  }
+
   @override
   Widget build(BuildContext context) {
-    const timeCellHeight = 45.0; // 1시간 높이
-    final minuteHeight = timeCellHeight / 14; // 5분당 높이
-    const dateCellWidth = 130.0;
-    const timeLabelWidth = 60.0;
+    const timeCellHeight = 55.0; // 1시간 높이
+    final minuteHeight = timeCellHeight / 60; // 1분당 높이로 변경
+    const dateCellWidth = 160.0;
+    const timeLabelWidth = 50.0;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -33,14 +59,17 @@ class ScheduleGrid extends StatelessWidget {
                 Container(
                   width: timeLabelWidth,
                   height: timeCellHeight * 0.666,
-                  color: Colors.grey[200],
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(right: BorderSide(color: Colors.grey[400]!)),
+                  ),
                 ),
                 ...dates.map((d) {
                   return Container(
                     width: dateCellWidth,
                     height: timeCellHeight * 0.666,
                     alignment: Alignment.center,
-                    color: Colors.grey[300],
+                    color: Colors.white,
                     child: Text(
                       '${d.month}/${d.day}',
                       style: const TextStyle(fontSize: 14),
@@ -67,12 +96,12 @@ class ScheduleGrid extends StatelessWidget {
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               border: Border(
+                                right: BorderSide(color: Colors.grey[400]!),
                                 top: BorderSide(color: Colors.grey[300]!),
-                                right: BorderSide(color: Colors.grey[300]!),
                               ),
                             ),
                             child: Text(
-                              '$h시',
+                              h < 10 ? '0$h:00' : '$h:00',
                               style: const TextStyle(fontSize: 12),
                             ),
                           );
@@ -119,16 +148,15 @@ class ScheduleGrid extends StatelessWidget {
                                 final totalEndMinutes =
                                     endHour * 60 + endMinute;
                                 final height =
-                                    (totalEndMinutes - totalStartMinutes) /
-                                    5 *
+                                    (totalEndMinutes - totalStartMinutes) *
                                     minuteHeight;
 
                                 return Positioned(
-                                  top: totalStartMinutes / 5 * minuteHeight,
+                                  top: totalStartMinutes * minuteHeight,
                                   left: 0,
                                   right: 0,
                                   height: height,
-                                  child: GestureDetector(
+                                  child: InkWell(
                                     onTap: () {
                                       showDialog(
                                         context: context,
@@ -205,23 +233,43 @@ class ScheduleGrid extends StatelessWidget {
                                         ),
                                       );
                                     },
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: a['color'] as Color,
-                                        borderRadius: BorderRadius.zero,
-                                        border: Border.all(
-                                          color: Colors.grey[400]!,
-                                          width: 0.5,
-                                        ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4.0,
+                                        vertical: 2.0,
                                       ),
-                                      child: Text(
-                                        a['title'] as String,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.white,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4.0),
+                                        decoration: BoxDecoration(
+                                          color: (a['color'] as Color)
+                                              .withOpacity(0.8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
-                                        textAlign: TextAlign.center,
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              _getIconForTitle(a['title']),
+                                              color: Colors.white,
+                                              size: 14,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                a['title'] as String,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                textAlign: TextAlign.left,
+                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 2,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),

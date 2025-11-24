@@ -308,23 +308,28 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: 'ai_feedback',
-            onPressed: _handleAIFeedback,
-            backgroundColor: Colors.blue,
-            child: const Icon(Icons.auto_awesome, color: Colors.white),
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton(
-            heroTag: 'add_schedule',
-            onPressed: _showDaySelectionDialog,
-            backgroundColor: const Color(0xFFFF6000),
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
-        ],
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(
+          bottom: 70.0,
+        ), // 하단 네비게이션 바와의 간격을 위해 패딩 추가
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            FloatingActionButton(
+              heroTag: 'ai_feedback',
+              onPressed: _handleAIFeedback,
+              backgroundColor: Colors.blue,
+              child: const Icon(Icons.auto_awesome, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            FloatingActionButton(
+              heroTag: 'add_schedule',
+              onPressed: _showDaySelectionDialog,
+              backgroundColor: const Color(0xFFFF6000),
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+          ],
+        ),
       ),
       body: SafeArea(
         child: Column(
