@@ -56,7 +56,7 @@ class _PeopleCardState extends State<PeopleCard> {
       final response = await http.post(
         Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}/remove_member'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'userId': member['_id']}),
+        body: jsonEncode({'userId': member['id']}), // 'userId'를 'id'로 변경
       );
 
       if (response.statusCode == 200) {
@@ -103,7 +103,9 @@ class _PeopleCardState extends State<PeopleCard> {
       final response = await http.post(
         Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}/change_owner'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'newOwnerId': member['_id']}),
+        body: jsonEncode({
+          'newOwnerId': member['id'],
+        }), // 'newOwnerId'의 값도 'id'로 변경
       );
 
       if (response.statusCode == 200) {
@@ -164,13 +166,17 @@ class _PeopleCardState extends State<PeopleCard> {
       builder: (context) => SafeArea(
         child: Wrap(
           children: <Widget>[
-            if (_isOwner && member['_id'] != widget.ownerId)
+            if (_isOwner &&
+                member['_id'] !=
+                    widget.ownerId) // 조건문은 고유 ID(_id)로 비교하는 것이 맞습니다.
               ListTile(
                 leading: const Icon(Icons.person_remove),
                 title: const Text('추방하기'),
                 onTap: () => _removeMember(member),
               ),
-            if (_isOwner && member['_id'] != widget.ownerId)
+            if (_isOwner &&
+                member['_id'] !=
+                    widget.ownerId) // 조건문은 고유 ID(_id)로 비교하는 것이 맞습니다.
               ListTile(
                 leading: const Icon(Icons.admin_panel_settings),
                 title: const Text('방장 위임하기'),
