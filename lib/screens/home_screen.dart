@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../widgets/home_header.dart';
 import '../widgets/invitation_drawer.dart';
+import '../config/app_config.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId; // 로그인 후 전달받는 userId
@@ -21,7 +22,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final String baseUrl = "http://127.0.0.1:5000"; // Flask 서버 주소
   List rooms = [];
   bool isLoading = true;
 
@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/rooms/user/${widget.userId}'),
+        Uri.parse('$kBaseUrl/api/rooms/user/${widget.userId}'),
       );
 
       if (response.statusCode == 200) {
@@ -296,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(12),
                   child: room['imageId'] != null
                       ? Image.network(
-                          '$baseUrl/api/images/${room['imageId']}',
+                          '$kBaseUrl/api/images/${room['imageId']}',
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(color: Colors.grey[300]),

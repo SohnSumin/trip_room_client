@@ -6,6 +6,7 @@ import '../widgets/home_header.dart';
 import 'add_schedule_screen.dart';
 import '../widgets/schedule_grid.dart';
 import 'schedule_feedback.dart';
+import '../config/app_config.dart';
 import 'update_schedule_screen.dart';
 
 class TripScheduleScreen extends StatefulWidget {
@@ -31,7 +32,6 @@ class TripScheduleScreen extends StatefulWidget {
 }
 
 class _TripScheduleScreenState extends State<TripScheduleScreen> {
-  final String baseUrl = "http://127.0.0.1:5000";
   late List<DateTime> dates;
   Map<String, List<Map<String, dynamic>>> schedule = {};
   bool isLoading = true;
@@ -90,7 +90,7 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-          '$baseUrl/api/rooms/${widget.roomId}/schedule', // API 엔드포인트
+          '$kBaseUrl/api/rooms/${widget.roomId}/schedule', // API 엔드포인트
         ), // 'schedules' -> 'schedule'
       );
       if (response.statusCode == 200) {
@@ -148,7 +148,7 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
   Future<void> _deleteSchedule(int dayIndex, int itemIndex) async {
     try {
       final url = Uri.parse(
-        '$baseUrl/api/rooms/${widget.roomId}/schedule/day/$dayIndex/$itemIndex',
+        '$kBaseUrl/api/rooms/${widget.roomId}/schedule/day/$dayIndex/$itemIndex',
       );
       final response = await http.delete(url);
 

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../data/countries.dart';
+import '../config/app_config.dart';
 import '../widgets/home_header.dart';
 
 class AddRoomScreen extends StatefulWidget {
@@ -26,8 +27,6 @@ class AddRoomScreen extends StatefulWidget {
 }
 
 class _AddRoomScreenState extends State<AddRoomScreen> {
-  final String baseUrl = "http://127.0.0.1:5000";
-
   final _titleController = TextEditingController();
   String? _selectedCountry;
   DateTime? _startDate;
@@ -90,7 +89,7 @@ class _AddRoomScreenState extends State<AddRoomScreen> {
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('$baseUrl/api/rooms'),
+      Uri.parse('$kBaseUrl/api/rooms'),
     );
 
     request.fields['title'] = _titleController.text;

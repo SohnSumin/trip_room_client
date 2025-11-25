@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/app_config.dart';
 
 class AccountScreen extends StatefulWidget {
   final String userId;
@@ -15,8 +16,6 @@ class _AccountScreenState extends State<AccountScreen> {
   bool showDeleteForm = false;
 
   final TextEditingController passwordController = TextEditingController();
-
-  final String baseUrl = "http://127.0.0.1:5000"; // Flask 서버 주소
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +131,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Future<void> _delete() async {
     final response = await http.post(
-      Uri.parse('$baseUrl/api/auth/delete'),
+      Uri.parse('$kBaseUrl/api/auth/delete'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'id': widget.id,

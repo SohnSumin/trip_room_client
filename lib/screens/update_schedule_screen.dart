@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../widgets/home_header.dart';
+import '../config/app_config.dart';
 
 class UpdateScheduleScreen extends StatefulWidget {
   final String userId;
@@ -29,7 +30,6 @@ class UpdateScheduleScreen extends StatefulWidget {
 }
 
 class _UpdateScheduleScreenState extends State<UpdateScheduleScreen> {
-  final String baseUrl = "http://127.0.0.1:5000";
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController _titleController;
@@ -123,7 +123,7 @@ class _UpdateScheduleScreenState extends State<UpdateScheduleScreen> {
     try {
       final scheduleIndex = widget.scheduleItem['index'];
       final url = Uri.parse(
-        '$baseUrl/api/rooms/${widget.roomId}/schedule/day/${widget.dayIndex}/$scheduleIndex',
+        '$kBaseUrl/api/rooms/${widget.roomId}/schedule/day/${widget.dayIndex}/$scheduleIndex',
       );
       final headers = {'Content-Type': 'application/json'};
       final body = jsonEncode({

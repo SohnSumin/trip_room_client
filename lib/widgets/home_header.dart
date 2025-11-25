@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/app_config.dart';
 
 class HomeHeader extends StatefulWidget {
   final String userId;
@@ -22,7 +23,6 @@ class HomeHeader extends StatefulWidget {
 }
 
 class _HomeHeaderState extends State<HomeHeader> {
-  final String baseUrl = "http://127.0.0.1:5000";
   bool _hasInvitations = false;
 
   // 메뉴 선택 시 처리 로직
@@ -50,7 +50,7 @@ class _HomeHeaderState extends State<HomeHeader> {
   Future<void> _checkInvitations() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/rooms/invited/${widget.userId}'),
+        Uri.parse('$kBaseUrl/api/rooms/invited/${widget.userId}'),
       );
       if (response.statusCode == 200) {
         final List<dynamic> invitedRooms = jsonDecode(

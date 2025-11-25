@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/app_config.dart';
 
 class InvitationDrawer extends StatefulWidget {
   final String userId;
@@ -17,7 +18,6 @@ class InvitationDrawer extends StatefulWidget {
 }
 
 class _InvitationDrawerState extends State<InvitationDrawer> {
-  final String baseUrl = "http://127.0.0.1:5000";
   List<dynamic> invitedRooms = [];
   bool _isLoading = true;
 
@@ -33,7 +33,7 @@ class _InvitationDrawerState extends State<InvitationDrawer> {
     });
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/rooms/invited/${widget.userId}'),
+        Uri.parse('$kBaseUrl/api/rooms/invited/${widget.userId}'),
       );
       if (response.statusCode == 200) {
         setState(() {
@@ -53,7 +53,7 @@ class _InvitationDrawerState extends State<InvitationDrawer> {
     final action = accept ? 'accept' : 'decline';
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/rooms/$roomId/$action'),
+        Uri.parse('$kBaseUrl/api/rooms/$roomId/$action'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'userId': widget.userId}),
       );

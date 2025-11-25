@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/app_config.dart';
 
 class PeopleCard extends StatefulWidget {
   final String roomId;
@@ -25,7 +26,6 @@ class PeopleCard extends StatefulWidget {
 }
 
 class _PeopleCardState extends State<PeopleCard> {
-  final String baseUrl = "http://127.0.0.1:5000";
   final TextEditingController _inviteIdController = TextEditingController();
 
   bool get _isOwner => widget.currentUserId == widget.ownerLoginId;
@@ -54,7 +54,7 @@ class _PeopleCardState extends State<PeopleCard> {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/rooms/${widget.roomId}/remove_member'),
+        Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}/remove_member'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'userId': member['_id']}),
       );
@@ -101,7 +101,7 @@ class _PeopleCardState extends State<PeopleCard> {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/rooms/${widget.roomId}/change_owner'),
+        Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}/change_owner'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'newOwnerId': member['_id']}),
       );
@@ -136,7 +136,7 @@ class _PeopleCardState extends State<PeopleCard> {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/rooms/${widget.roomId}/invite'),
+        Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}/invite'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'userId': userIdToInvite}),
       );

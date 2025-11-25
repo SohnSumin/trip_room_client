@@ -8,6 +8,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../data/countries.dart';
 import '../widgets/home_header.dart';
+import '../config/app_config.dart';
 
 class UpdateRoomScreen extends StatefulWidget {
   final String userId;
@@ -30,8 +31,6 @@ class UpdateRoomScreen extends StatefulWidget {
 }
 
 class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
-  final String baseUrl = "http://127.0.0.1:5000";
-
   final _titleController = TextEditingController();
   String? _selectedCountry;
   DateTime? _startDate;
@@ -114,7 +113,7 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
 
     try {
       http.Response response;
-      final url = Uri.parse('$baseUrl/api/rooms/${widget.roomId}');
+      final url = Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}');
 
       if (_image == null) {
         // 이미지가 없는 경우: application/json 으로 요청
@@ -240,7 +239,7 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
                             image: _image == null && _existingImageUrl != null
                                 ? DecorationImage(
                                     image: NetworkImage(
-                                      '$baseUrl/api/images/$_existingImageUrl',
+                                      '$kBaseUrl/api/images/$_existingImageUrl',
                                     ),
                                     fit: BoxFit.cover,
                                   )

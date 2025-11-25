@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/app_config.dart';
 
 class StartScreen extends StatefulWidget {
   const StartScreen({super.key});
@@ -16,8 +17,6 @@ class _StartScreenState extends State<StartScreen> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController idController = TextEditingController();
-
-  final String baseUrl = "http://127.0.0.1:5000"; // Flask 서버 주소
 
   @override
   Widget build(BuildContext context) {
@@ -235,7 +234,7 @@ class _StartScreenState extends State<StartScreen> {
 
   Future<void> _login() async {
     final response = await http.post(
-      Uri.parse('$baseUrl/api/auth/login'),
+      Uri.parse('$kBaseUrl/api/auth/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'id': idController.text.trim(),
@@ -256,7 +255,7 @@ class _StartScreenState extends State<StartScreen> {
 
   Future<void> _signup() async {
     final response = await http.post(
-      Uri.parse('$baseUrl/api/auth/signup'),
+      Uri.parse('$kBaseUrl/api/auth/signup'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'id': idController.text.trim(),

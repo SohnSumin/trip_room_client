@@ -8,6 +8,7 @@ import 'update_room_screen.dart';
 import '../widgets/invitation_drawer.dart';
 import '../widgets/people_card.dart';
 import 'trip_schedule_screen.dart';
+import '../config/app_config.dart'; // Import the new config file
 import '../widgets/checklist_card.dart';
 
 class RoomDetailScreen extends StatefulWidget {
@@ -29,7 +30,6 @@ class RoomDetailScreen extends StatefulWidget {
 }
 
 class _RoomDetailScreenState extends State<RoomDetailScreen> {
-  final String baseUrl = "http://127.0.0.1:5000";
   Map<String, dynamic>? roomDetails;
   List<dynamic> members = [];
   bool isLoading = true;
@@ -50,10 +50,10 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     });
     try {
       final detailsResponse = await http.get(
-        Uri.parse('$baseUrl/api/rooms/${widget.roomId}'),
+        Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}'),
       );
       final membersResponse = await http.get(
-        Uri.parse('$baseUrl/api/rooms/${widget.roomId}/members'),
+        Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}/members'),
       );
 
       if (detailsResponse.statusCode == 200 &&
@@ -96,7 +96,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     if (confirmed == true) {
       try {
         final response = await http.delete(
-          Uri.parse('$baseUrl/api/rooms/${widget.roomId}'),
+          Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}'),
         );
 
         if (response.statusCode == 200 && mounted) {
@@ -179,7 +179,8 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                               height: 250,
                               width: double.infinity,
                               child: Image.network(
-                                '$baseUrl/api/images/${roomDetails!['imageId']!}',
+                                // Use kBaseUrl here
+                                '$kBaseUrl/api/images/${roomDetails!['imageId']!}',
                                 fit: BoxFit.cover,
                               ),
                             ),

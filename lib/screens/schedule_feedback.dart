@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:ui';
 import 'dart:convert';
 import '../widgets/home_header.dart';
+import '../config/app_config.dart';
 
 class ScheduleFeedbackScreen extends StatefulWidget {
   final String roomId;
@@ -23,7 +24,6 @@ class ScheduleFeedbackScreen extends StatefulWidget {
 }
 
 class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
-  final String baseUrl = "http://127.0.0.1:5000";
   String _loadingMessage = 'AI 피드백을 요청하는 중입니다...';
   String? _feedbackMessage;
   List<String>? _changes;
@@ -44,7 +44,9 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
       });
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/rooms/${widget.roomId}/schedule/feedback/auto'),
+        Uri.parse(
+          '$kBaseUrl/api/rooms/${widget.roomId}/schedule/feedback/auto',
+        ),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
       );
 
