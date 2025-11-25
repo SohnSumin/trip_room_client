@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../widgets/home_header.dart';
@@ -258,6 +259,90 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
     });
   }
 
+  // 이전 AI 피드백 기록을 보여주는 다이얼로그
+  Future<void> _showFeedbackHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final historyKey = 'feedback_history_${widget.roomId}';
+    final String? historyJson = prefs.getString(historyKey);
+
+    if (!mounted) return;
+
+    if (historyJson == null || historyJson.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('저장된 AI 피드백 기록이 없습니다.')));
+      return;
+    }
+
+    final List<dynamic> history = json.decode(historyJson);
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('AI 피드백 기록'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: history.length,
+              itemBuilder: (context, index) {
+                final feedback = history[index];
+                final timestamp = DateTime.parse(feedback['timestamp']);
+                final formattedDate = DateFormat(
+                  'yyyy-MM-dd HH:mm',
+                ).format(timestamp);
+
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: ExpansionTile(
+                    title: Text(
+                      formattedDate,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(feedback['feedback_message'] ?? '피드백 없음'),
+                            if (feedback['changes'] != null &&
+                                (feedback['changes'] as List).isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              const Text(
+                                '변경 내역:',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                (feedback['changes'] as List)
+                                    .map((c) => '• $c')
+                                    .join('\n'),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('닫기'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildBottomNavBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -320,6 +405,13 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
               onPressed: _handleAIFeedback,
               backgroundColor: Colors.blue,
               child: const Icon(Icons.auto_awesome, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            FloatingActionButton(
+              heroTag: 'feedback_history',
+              onPressed: _showFeedbackHistory,
+              backgroundColor: Colors.indigo,
+              child: const Icon(Icons.history, color: Colors.white),
             ),
             const SizedBox(height: 16),
             FloatingActionButton(

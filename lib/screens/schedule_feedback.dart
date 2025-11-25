@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
 import 'dart:convert';
 import '../widgets/home_header.dart';
@@ -35,6 +36,34 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
     _fetchAIFeedback();
   }
 
+  // SharedPreferences에 피드백 저장
+  Future<void> _saveFeedbackToHistory(
+    String feedbackMessage,
+    List<String> changes,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final historyKey = 'feedback_history_${widget.roomId}';
+
+    // 1. 기존 기록 불러오기
+    final String? historyJson = prefs.getString(historyKey);
+    List<dynamic> history = historyJson != null ? json.decode(historyJson) : [];
+
+    // 2. 새 피드백을 목록 맨 위에 추가
+    history.insert(0, {
+      'timestamp': DateTime.now().toIso8601String(),
+      'feedback_message': feedbackMessage,
+      'changes': changes,
+    });
+
+    // 3. 기록 개수를 10개로 제한 (선택 사항)
+    if (history.length > 10) {
+      history = history.sublist(0, 10);
+    }
+
+    // 4. 업데이트된 기록 저장
+    await prefs.setString(historyKey, json.encode(history));
+  }
+
   Future<void> _fetchAIFeedback() async {
     try {
       // 단계별 메시지 업데이트
@@ -59,6 +88,10 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
           setState(() {
             _feedbackMessage = data['feedback_message'];
             _changes = List<String>.from(data['changes'] ?? []);
+            // 성공 시 피드백 기록 저장
+            if (_feedbackMessage != null) {
+              _saveFeedbackToHistory(_feedbackMessage!, _changes ?? []);
+            }
           });
         } else {
           throw Exception('서버로부터 유효하지 않은 형식의 응답을 받았습니다.');
