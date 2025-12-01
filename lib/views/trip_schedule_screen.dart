@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:trip_room_client/viewmodels/trip_schedule_view_model.dart';
 import '../widgets/home_header.dart';
-import 'add_schedule_screen.dart';
+import '../models/schedule_item_model.dart';
+import 'add_schedule_screen.dart'; // 경로 변경
 import '../widgets/schedule_grid.dart';
 import 'schedule_feedback.dart';
-import '../config/app_config.dart';
-import 'update_schedule_screen.dart';
+import 'update_schedule_screen.dart'; // 경로 변경
 
 class TripScheduleScreen extends StatefulWidget {
   final String roomId;
@@ -33,151 +31,45 @@ class TripScheduleScreen extends StatefulWidget {
 }
 
 class _TripScheduleScreenState extends State<TripScheduleScreen> {
-  late List<DateTime> dates;
-  Map<String, List<Map<String, dynamic>>> schedule = {};
-  bool isLoading = true;
+  late final TripScheduleViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _generateDates();
-    _fetchScheduleData();
+    _viewModel = TripScheduleViewModel(
+      roomId: widget.roomId,
+      startDateStr: widget.startDate,
+      endDateStr: widget.endDate,
+    );
+    _viewModel.addListener(_onViewModelUpdated);
   }
 
-  void _generateDates() {
-    final start = DateTime.parse(widget.startDate);
-    final end = DateTime.parse(widget.endDate);
-    final difference = end.difference(start).inDays;
-    dates = List.generate(difference + 1, (i) => start.add(Duration(days: i)));
+  @override
+  void dispose() {
+    _viewModel.removeListener(_onViewModelUpdated);
+    super.dispose();
   }
 
-  // 서버에서 받은 색상 이름 문자열을 Color 객체로 변환하는 헬퍼 함수
-  Color _getColorFromString(String colorString) {
-    switch (colorString.toLowerCase()) {
-      case 'red':
-        return Colors.red;
-      case 'green':
-        return Colors.green;
-      case 'blue':
-        return Colors.blue;
-      case 'teal':
-        return Colors.teal;
-      case 'blueaccent':
-        return Colors.blueAccent;
-      case 'redaccent':
-        return Colors.redAccent;
-      case 'indigo':
-        return Colors.indigo;
-      case 'lightblue':
-        return Colors.lightBlue;
-      case 'deeporange':
-        return Colors.deepOrange;
-      case 'purple':
-        return Colors.purple;
-      case 'orange':
-        return Colors.orange;
-      case 'cyan':
-        return Colors.cyan;
-      case 'amber':
-        return Colors.amber;
-      case 'grey':
-        return Colors.grey;
-      default:
-        return Colors.blue; // 매칭되는 색상이 없을 경우 기본 색상
-    }
-  }
-
-  Future<void> _fetchScheduleData() async {
-    try {
-      final response = await http.get(
-        Uri.parse(
-          '$kBaseUrl/api/rooms/${widget.roomId}/schedule', // API 엔드포인트
-        ), // 'schedules' -> 'schedule'
-      );
-      if (response.statusCode == 200) {
-        // schedules.py 응답 형식에 맞게 수정
-        final Map<String, dynamic> responseData = jsonDecode(
-          utf8.decode(response.bodyBytes),
-        );
-        final Map<String, dynamic> scheduleData =
-            responseData['schedule'] as Map<String, dynamic>;
-
-        final Map<String, List<Map<String, dynamic>>> convertedSchedule =
-            scheduleData.map((key, value) {
-              final List<dynamic> items = value as List<dynamic>;
-              final List<Map<String, dynamic>> typedItems = items.map((item) {
-                final scheduleItem = item as Map<String, dynamic>;
-                scheduleItem['color'] = _getColorFromString(
-                  scheduleItem['color'] as String,
-                );
-                return scheduleItem;
-              }).toList();
-
-              // 시간순으로 정렬
-              typedItems.sort(
-                (a, b) => (a['startHour'] * 60 + a['startMinute']).compareTo(
-                  b['startHour'] * 60 + b['startMinute'],
-                ),
-              );
-
-              return MapEntry(key, typedItems);
-            });
-
-        setState(() {
-          schedule = convertedSchedule;
-          isLoading = false;
-        });
-      } else if (response.statusCode == 404) {
-        // 스케줄이 없는 경우 (404)
-        setState(() {
-          schedule = {}; // 빈 맵으로 설정
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Failed to load schedule');
+  void _onViewModelUpdated() {
+    if (mounted) {
+      setState(() {});
+      if (_viewModel.errorMessage != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_viewModel.errorMessage!)));
       }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('스케줄을 불러오는 중 오류가 발생했습니다: $e')));
     }
   }
 
   Future<void> _deleteSchedule(int dayIndex, int itemIndex) async {
-    try {
-      final url = Uri.parse(
-        '$kBaseUrl/api/rooms/${widget.roomId}/schedule/day/$dayIndex/$itemIndex',
-      );
-      final response = await http.delete(url);
-
-      if (response.statusCode == 200) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('일정이 삭제되었습니다.')));
-        }
-        _fetchScheduleData(); // Refresh schedule
-      } else {
-        final error = jsonDecode(utf8.decode(response.bodyBytes))['error'];
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('삭제 실패: $error')));
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('오류 발생: $e')));
-      }
-    }
+    final result = await _viewModel.deleteSchedule(dayIndex, itemIndex);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(result['message'])));
   }
 
-  void _handleUpdateSchedule(int dayIndex, Map<String, dynamic> scheduleItem) {
+  void _handleUpdateSchedule(int dayIndex, ScheduleItem scheduleItem) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -187,13 +79,13 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
           id: widget.id,
           roomId: widget.roomId,
           dayIndex: dayIndex,
-          date: dates[dayIndex],
+          date: _viewModel.dates[dayIndex],
           scheduleItem: scheduleItem,
         ),
       ),
     ).then((result) {
       if (result == true) {
-        _fetchScheduleData();
+        _viewModel.fetchScheduleData();
       }
     });
   }
@@ -208,11 +100,11 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
             width: double.maxFinite,
             child: ListView.builder(
               shrinkWrap: true,
-              itemCount: dates.length,
+              itemCount: _viewModel.dates.length,
               itemBuilder: (BuildContext context, int index) {
                 return ListTile(
                   title: Text(
-                    '${index + 1}일차: ${DateFormat('M/d(E)', 'ko_KR').format(dates[index])}',
+                    '${index + 1}일차: ${DateFormat('M/d(E)', 'ko_KR').format(_viewModel.dates[index])}',
                   ),
                   onTap: () {
                     Navigator.of(context).pop(); // 다이얼로그 닫기
@@ -225,11 +117,11 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
                           id: widget.id,
                           roomId: widget.roomId,
                           dayIndex: index,
-                          date: dates[index],
+                          date: _viewModel.dates[index],
                         ),
                       ),
                     ).then((result) {
-                      if (result == true) _fetchScheduleData();
+                      if (result == true) _viewModel.fetchScheduleData();
                     });
                   },
                 );
@@ -254,27 +146,23 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
       ),
     ).then((result) {
       if (result == true) {
-        _fetchScheduleData(); // AI 추천 일정이 적용되었으므로 새로고침
+        _viewModel.fetchScheduleData(); // AI 추천 일정이 적용되었으므로 새로고침
       }
     });
   }
 
   // 이전 AI 피드백 기록을 보여주는 다이얼로그
   Future<void> _showFeedbackHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final historyKey = 'feedback_history_${widget.roomId}';
-    final String? historyJson = prefs.getString(historyKey);
+    final history = await _viewModel.getFeedbackHistory();
 
     if (!mounted) return;
 
-    if (historyJson == null || historyJson.isEmpty) {
+    if (history == null || history.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('저장된 AI 피드백 기록이 없습니다.')));
       return;
     }
-
-    final List<dynamic> history = json.decode(historyJson);
 
     await showDialog(
       context: context,
@@ -379,7 +267,7 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.calendar_today), // 현재 화면 아이콘 (채워진 모양)
+              icon: const Icon(Icons.calendar_today), // 현재 화면 아이콘
               color: Colors.white,
               onPressed: () {}, // 현재 화면이므로 동작 없음
             ),
@@ -394,9 +282,8 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(
-          bottom: 70.0,
-        ), // 하단 네비게이션 바와의 간격을 위해 패딩 추가
+        padding: const EdgeInsets.only(bottom: 70.0),
+        // 하단 네비게이션 바와의 간격을 위해 패딩 추가
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -442,15 +329,15 @@ class _TripScheduleScreenState extends State<TripScheduleScreen> {
               ),
             ),
             Expanded(
-              child: isLoading
+              child: _viewModel.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : ScheduleGrid(
-                      dates: dates,
-                      schedule: schedule,
+                      dates: _viewModel.dates,
+                      schedule: _viewModel.schedule,
                       onUpdate: _handleUpdateSchedule,
                       onDelete: _deleteSchedule,
                     ),
-            ), // Expanded
+            ),
             _buildBottomNavBar(),
           ],
         ),

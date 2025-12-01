@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import '../models/schedule_item_model.dart';
 
 class ScheduleGrid extends StatelessWidget {
   final List<DateTime> dates;
-  final Map<String, List<Map<String, dynamic>>> schedule;
-  final Function(int dayIndex, Map<String, dynamic> scheduleItem) onUpdate;
+  final Map<String, List<ScheduleItem>> schedule;
+  final Function(int dayIndex, ScheduleItem scheduleItem) onUpdate;
   final Function(int dayIndex, int itemIndex) onDelete;
 
   const ScheduleGrid({
@@ -14,7 +15,42 @@ class ScheduleGrid extends StatelessWidget {
     required this.onDelete,
   });
 
-  // 일정 종류에 따라 아이콘을 반환하는 헬퍼 함수
+  Color _getColorFromString(String colorString) {
+    switch (colorString.toLowerCase()) {
+      case 'red':
+        return Colors.red;
+      case 'green':
+        return Colors.green;
+      case 'blue':
+        return Colors.blue;
+      case 'teal':
+        return Colors.teal;
+      case 'blueaccent':
+        return Colors.blueAccent;
+      case 'redaccent':
+        return Colors.redAccent;
+      case 'indigo':
+        return Colors.indigo;
+      case 'lightblue':
+        return Colors.lightBlue;
+      case 'deeporange':
+        return Colors.deepOrange;
+      case 'purple':
+        return Colors.purple;
+      case 'orange':
+        return Colors.orange;
+      case 'cyan':
+        return Colors.cyan;
+      case 'amber':
+        return Colors.amber;
+      case 'grey':
+        return Colors.grey;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  // 일정 제목에 따라 아이콘을 반환
   IconData _getIconForTitle(String title) {
     if (title.contains('식사') ||
         title.contains('아침') ||
@@ -37,13 +73,13 @@ class ScheduleGrid extends StatelessWidget {
     } else if (title.contains('쇼핑')) {
       return Icons.shopping_bag;
     }
-    return Icons.location_on; // 기본 아이콘
+    return Icons.location_on; // 그 외 기본 아이콘
   }
 
   @override
   Widget build(BuildContext context) {
-    const timeCellHeight = 55.0; // 1시간 높이
-    final minuteHeight = timeCellHeight / 60; // 1분당 높이로 변경
+    const timeCellHeight = 55.0; // 1시간 셀 높이
+    final minuteHeight = timeCellHeight / 60; // 1분당 높이
     const dateCellWidth = 160.0;
     const timeLabelWidth = 50.0;
 
@@ -53,7 +89,7 @@ class ScheduleGrid extends StatelessWidget {
         alignment: Alignment.topLeft,
         child: Column(
           children: [
-            // 날짜 헤더
+            // 상단 날짜 헤더
             Row(
               children: [
                 Container(
@@ -78,7 +114,7 @@ class ScheduleGrid extends StatelessWidget {
                 }).toList(),
               ],
             ),
-            // 스케줄 그리드 (세로 스크롤 영역)
+            // 스케줄 그리드 영역 (세로 스크롤 가능)
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.vertical,
@@ -87,7 +123,7 @@ class ScheduleGrid extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 시간축
+                      // 좌측 시간 표시줄
                       Column(
                         children: List.generate(24, (h) {
                           return Container(
@@ -107,7 +143,7 @@ class ScheduleGrid extends StatelessWidget {
                           );
                         }),
                       ),
-                      // 날짜별 컬럼
+                      // 날짜별 일정 컬럼
                       ...List.generate(dates.length, (i) {
                         final dayAppointments = schedule[i.toString()] ?? [];
                         return SizedBox(
@@ -116,7 +152,7 @@ class ScheduleGrid extends StatelessWidget {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              // 격자
+                              // 배경 격자
                               Column(
                                 children: List.generate(24, (index) {
                                   return Container(
@@ -134,103 +170,33 @@ class ScheduleGrid extends StatelessWidget {
                                   );
                                 }),
                               ),
-                              // 일정 블록
+                              // 개별 일정 블록
                               ...dayAppointments.asMap().entries.map((entry) {
                                 final a = entry.value;
-                                final startHour = a['startHour'] as int;
-                                final startMinute =
-                                    a['startMinute'] as int? ?? 0;
-                                final endHour = a['endHour'] as int;
-                                final endMinute = a['endMinute'] as int? ?? 0;
-
                                 final totalStartMinutes =
-                                    startHour * 60 + startMinute;
+                                    a.startTime.hour * 60 + a.startTime.minute;
                                 final totalEndMinutes =
-                                    endHour * 60 + endMinute;
+                                    a.endTime.hour * 60 + a.endTime.minute;
                                 final height =
                                     (totalEndMinutes - totalStartMinutes) *
                                     minuteHeight;
 
                                 return Positioned(
                                   top: totalStartMinutes * minuteHeight,
-                                  left: 0,
-                                  right: 0,
+                                  left: 2,
+                                  right: 2,
                                   height: height,
                                   child: InkWell(
                                     onTap: () {
                                       showDialog(
                                         context: context,
-                                        builder: (_) => AlertDialog(
-                                          title: Text(a['title'] as String),
-                                          content: Text(
-                                            '장소: ${a['place']}\n시간: ${a['startHour']}:${(a['startMinute'] as int).toString().padLeft(2, '0')}~${a['endHour']}:${(a['endMinute'] as int).toString().padLeft(2, '0')}',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                onUpdate(i, {
-                                                  ...a,
-                                                  'index': entry.key,
-                                                });
-                                              },
-                                              child: const Text('수정'),
+                                        builder: (_) =>
+                                            _buildScheduleDetailDialog(
+                                              context,
+                                              a,
+                                              i,
+                                              entry.key,
                                             ),
-                                            TextButton(
-                                              onPressed: () async {
-                                                Navigator.pop(context);
-                                                final bool?
-                                                confirmed = await showDialog<bool>(
-                                                  context: context,
-                                                  builder: (context) =>
-                                                      AlertDialog(
-                                                        title: const Text(
-                                                          '일정 삭제',
-                                                        ),
-                                                        content: const Text(
-                                                          '정말로 이 일정을 삭제하시겠습니까?',
-                                                        ),
-                                                        actions: [
-                                                          TextButton(
-                                                            onPressed: () =>
-                                                                Navigator.pop(
-                                                                  context,
-                                                                  false,
-                                                                ),
-                                                            child: const Text(
-                                                              '취소',
-                                                            ),
-                                                          ),
-                                                          TextButton(
-                                                            onPressed: () =>
-                                                                Navigator.pop(
-                                                                  context,
-                                                                  true,
-                                                                ),
-                                                            child: const Text(
-                                                              '삭제',
-                                                              style: TextStyle(
-                                                                color:
-                                                                    Colors.red,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                );
-                                                if (confirmed == true) {
-                                                  onDelete(i, entry.key);
-                                                }
-                                              },
-                                              child: const Text(
-                                                '삭제',
-                                                style: TextStyle(
-                                                  color: Colors.red,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
                                       );
                                     },
                                     child: Padding(
@@ -241,8 +207,9 @@ class ScheduleGrid extends StatelessWidget {
                                       child: Container(
                                         padding: const EdgeInsets.all(4.0),
                                         decoration: BoxDecoration(
-                                          color: (a['color'] as Color)
-                                              .withOpacity(0.8),
+                                          color: _getColorFromString(
+                                            a.color,
+                                          ).withOpacity(0.9),
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
@@ -250,14 +217,14 @@ class ScheduleGrid extends StatelessWidget {
                                         child: Row(
                                           children: [
                                             Icon(
-                                              _getIconForTitle(a['title']),
+                                              _getIconForTitle(a.title),
                                               color: Colors.white,
                                               size: 14,
                                             ),
                                             const SizedBox(width: 4),
                                             Expanded(
                                               child: Text(
-                                                a['title'] as String,
+                                                a.title,
                                                 style: const TextStyle(
                                                   fontSize: 11,
                                                   color: Colors.white,
@@ -287,6 +254,58 @@ class ScheduleGrid extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildScheduleDetailDialog(
+    BuildContext context,
+    ScheduleItem item,
+    int dayIndex,
+    int itemIndex,
+  ) {
+    return AlertDialog(
+      title: Text(item.title),
+      content: Text(
+        '장소: ${item.place}\n시간: ${item.startTime.format(context)} ~ ${item.endTime.format(context)}',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+            onUpdate(dayIndex, item);
+          },
+          child: const Text('수정'),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop(context);
+            final bool? confirmed = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('일정 삭제'),
+                content: const Text('정말로 이 일정을 삭제하시겠습니까?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('취소'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text(
+                      '삭제',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            );
+            if (confirmed == true) {
+              onDelete(dayIndex, itemIndex);
+            }
+          },
+          child: const Text('삭제', style: TextStyle(color: Colors.red)),
+        ),
+      ],
     );
   }
 }

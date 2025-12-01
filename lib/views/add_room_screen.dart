@@ -7,57 +7,34 @@ import 'package:intl/intl.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../data/countries.dart';
-import '../widgets/home_header.dart';
 import '../config/app_config.dart';
+import '../widgets/home_header.dart';
 
-class UpdateRoomScreen extends StatefulWidget {
+class AddRoomScreen extends StatefulWidget {
   final String userId;
   final String nickname;
   final String id;
-  final String roomId;
-  final Map<String, dynamic> roomDetails;
 
-  const UpdateRoomScreen({
+  const AddRoomScreen({
     super.key,
     required this.userId,
     required this.nickname,
     required this.id,
-    required this.roomId,
-    required this.roomDetails,
   });
 
   @override
-  State<UpdateRoomScreen> createState() => _UpdateRoomScreenState();
+  State<AddRoomScreen> createState() => _AddRoomScreenState();
 }
 
-class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
+class _AddRoomScreenState extends State<AddRoomScreen> {
   final _titleController = TextEditingController();
   String? _selectedCountry;
   DateTime? _startDate;
   DateTime? _endDate;
   XFile? _image;
-  String? _existingImageUrl;
   bool _isLoading = false;
 
   final ImagePicker _picker = ImagePicker();
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeFields();
-  }
-
-  void _initializeFields() {
-    final details = widget.roomDetails;
-    _titleController.text = details['title'] ?? '';
-    final countryFromServer = details['country'];
-    if (countryFromServer != null && countries.contains(countryFromServer)) {
-      _selectedCountry = countryFromServer;
-    }
-    _startDate = DateTime.tryParse(details['startDate'] ?? '');
-    _endDate = DateTime.tryParse(details['endDate'] ?? '');
-    _existingImageUrl = details['imageId'];
-  }
 
   Future<void> _pickImage() async {
     final XFile? pickedImage = await _picker.pickImage(
@@ -66,7 +43,6 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
     if (pickedImage != null) {
       setState(() {
         _image = pickedImage;
-        _existingImageUrl = null; // 새 이미지를 선택하면 기존 이미지는 보이지 않게 함
       });
     }
   }
@@ -74,7 +50,7 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: (isStartDate ? _startDate : _endDate) ?? DateTime.now(),
+      initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
@@ -89,7 +65,7 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
     }
   }
 
-  Future<void> _updateRoom() async {
+  Future<void> _createRoom() async {
     if (_titleController.text.isEmpty ||
         _selectedCountry == null ||
         _startDate == null ||
@@ -111,68 +87,59 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
       _isLoading = true;
     });
 
-    try {
-      http.Response response;
-      final url = Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}');
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$kBaseUrl/api/rooms'),
+    );
 
-      if (_image == null) {
-        // 이미지가 없는 경우: application/json 으로 요청
-        final headers = {'Content-Type': 'application/json'};
-        final body = jsonEncode({
-          'title': _titleController.text,
-          'country': _selectedCountry!,
-          'startDate': DateFormat('yyyy-MM-dd').format(_startDate!),
-          'endDate': DateFormat('yyyy-MM-dd').format(_endDate!),
-        });
-        response = await http.put(url, headers: headers, body: body);
+    request.fields['title'] = _titleController.text;
+    request.fields['country'] = _selectedCountry!;
+    request.fields['startDate'] = DateFormat('yyyy-MM-dd').format(_startDate!);
+    request.fields['endDate'] = DateFormat('yyyy-MM-dd').format(_endDate!);
+    request.fields['creatorId'] = widget.userId;
+
+    if (_image != null) {
+      if (kIsWeb) {
+        // 웹 환경 처리
+        request.files.add(
+          http.MultipartFile(
+            'image',
+            _image!.readAsBytes().asStream(),
+            await _image!.length(),
+            filename: _image!.name,
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
       } else {
-        // 이미지가 있는 경우: multipart/form-data 로 요청
-        var request = http.MultipartRequest('PUT', url);
-        request.fields['title'] = _titleController.text;
-        request.fields['country'] = _selectedCountry!;
-        request.fields['startDate'] = DateFormat(
-          'yyyy-MM-dd',
-        ).format(_startDate!);
-        request.fields['endDate'] = DateFormat('yyyy-MM-dd').format(_endDate!);
-
-        if (kIsWeb) {
-          // 웹 환경
-          request.files.add(
-            http.MultipartFile(
-              'image',
-              _image!.readAsBytes().asStream(),
-              await _image!.length(),
-              filename: _image!.name,
-              contentType: MediaType('image', 'jpeg'),
-            ),
-          );
-        } else {
-          // 모바일 환경
-          request.files.add(
-            await http.MultipartFile.fromPath(
-              'image',
-              _image!.path,
-              contentType: MediaType('image', 'jpeg'),
-            ),
-          );
-        }
-        final streamedResponse = await request.send();
-        response = await http.Response.fromStream(streamedResponse);
+        // 모바일 환경 처리
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'image',
+            _image!.path,
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
       }
+    }
 
-      if (response.statusCode == 200) {
+    try {
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 201) {
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('여행방이 성공적으로 수정되었습니다!')));
-          Navigator.pop(context, true); // 수정 성공 시 true 반환
+          ).showSnackBar(const SnackBar(content: Text('여행방이 성공적으로 생성되었습니다!')));
+          // 홈 화면으로 돌아가서 리스트를 갱신하도록 true를 반환
+          Navigator.pop(context, true);
         }
       } else {
-        final error = jsonDecode(utf8.decode(response.bodyBytes))['error'];
+        final error = jsonDecode(responseBody)['error'];
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('수정 실패: $error')));
+          ).showSnackBar(SnackBar(content: Text('생성 실패: $error')));
         }
       }
     } catch (e) {
@@ -182,11 +149,9 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
         ).showSnackBar(SnackBar(content: Text('오류 발생: $e')));
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -217,7 +182,7 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16.0),
               child: Text(
-                '여행방 수정하기',
+                '여행방 추가하기',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
@@ -236,14 +201,6 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
                             color: Colors.grey[300],
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.grey),
-                            image: _image == null && _existingImageUrl != null
-                                ? DecorationImage(
-                                    image: NetworkImage(
-                                      '$kBaseUrl/api/images/$_existingImageUrl',
-                                    ),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
                           ),
                           child: _image != null
                               ? ClipRRect(
@@ -258,18 +215,15 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
                                           fit: BoxFit.cover,
                                         ),
                                 )
-                              : (_existingImageUrl == null
-                                    ? const Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.camera_alt, size: 50),
-                                            Text('대표 사진을 변경하려면 터치하세요'),
-                                          ],
-                                        ),
-                                      )
-                                    : null),
+                              : const Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.camera_alt, size: 50),
+                                      Text('대표 사진을 선택하세요'),
+                                    ],
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -322,7 +276,7 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
                       ),
                       const SizedBox(height: 30),
                       ElevatedButton(
-                        onPressed: _isLoading ? null : _updateRoom,
+                        onPressed: _isLoading ? null : _createRoom,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFFF6000),
                           foregroundColor: Colors.white,
@@ -332,7 +286,7 @@ class _UpdateRoomScreenState extends State<UpdateRoomScreen> {
                             ? const CircularProgressIndicator(
                                 color: Colors.white,
                               )
-                            : const Text('여행방 수정하기'),
+                            : const Text('여행방 생성하기'),
                       ),
                     ],
                   ),

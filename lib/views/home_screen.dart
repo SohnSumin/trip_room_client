@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:intl/intl.dart';
+import '../models/room_model.dart';
+import '../viewmodels/home_view_model.dart';
 import '../widgets/home_header.dart';
 import '../widgets/invitation_drawer.dart';
-import '../config/app_config.dart';
 
 class HomeScreen extends StatefulWidget {
-  final String userId; // 로그인 후 전달받는 userId
+  final String userId; // 로그인 후 전달받는 사용자 ID
   final String nickname;
   final String id;
   const HomeScreen({
@@ -22,8 +21,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List rooms = [];
-  bool isLoading = true;
+  late final HomeViewModel _viewModel;
 
   String _sortOption = '최신순';
   final List<String> _sortOptions = ['최신순', '오래된 순', '가나다 순'];
@@ -31,110 +29,61 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchUserRooms();
+    _viewModel = HomeViewModel(userId: widget.userId);
+    _viewModel.addListener(_onViewModelUpdated);
   }
 
-  Future<void> _fetchUserRooms() async {
-    setState(() {
-      isLoading = true;
-    });
+  @override
+  void dispose() {
+    _viewModel.removeListener(_onViewModelUpdated);
+    super.dispose();
+  }
 
-    try {
-      final response = await http.get(
-        Uri.parse('$kBaseUrl/api/rooms/user/${widget.userId}'),
-      );
-
-      if (response.statusCode == 200) {
-        List data = jsonDecode(utf8.decode(response.bodyBytes));
-        // 정렬
-        data.sort((a, b) {
-          if (_sortOption == '최신순') {
-            final format = DateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'");
-            final dateA = a['createdAt'] != null
-                ? format.parse(a['createdAt'], true)
-                : DateTime.now();
-            final dateB = b['createdAt'] != null
-                ? format.parse(b['createdAt'], true)
-                : DateTime.now();
-            return dateB.compareTo(dateA);
-          } else if (_sortOption == '오래된 순') {
-            final format = DateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'");
-            final dateA = a['createdAt'] != null
-                ? format.parse(a['createdAt'], true)
-                : DateTime.now();
-            final dateB = b['createdAt'] != null
-                ? format.parse(b['createdAt'], true)
-                : DateTime.now();
-            return dateA.compareTo(dateB);
-          } else if (_sortOption == '가나다 순') {
-            return (a['title'] ?? '').compareTo(b['title'] ?? '');
-          }
-          return 0;
-        });
-
-        setState(() {
-          rooms = data;
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          rooms = [];
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        rooms = [];
-        isLoading = false;
-      });
+  void _onViewModelUpdated() {
+    if (mounted) {
+      setState(() {});
     }
   }
 
-  // D-Day 상태를 계산하고 스타일을 결정하는 위젯
-  Widget _buildDdayStatus(String startDateStr, String endDateStr) {
-    try {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final startDate = DateTime.parse(startDateStr);
-      final endDate = DateTime.parse(endDateStr);
+  // D-Day 상태를 계산하고 스타일을 결정하는 위젯 생성
+  Widget _buildDdayStatus(DateTime startDate, DateTime endDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-      String statusText;
-      Color backgroundColor;
-      Color textColor;
+    String statusText;
+    Color backgroundColor;
+    Color textColor;
 
-      if (today.isBefore(startDate)) {
-        final difference = startDate.difference(today).inDays;
-        statusText = 'D-$difference';
-        backgroundColor = const Color(0xFFFFEFE5); // Light Orange
-        textColor = const Color(0xFFFF6000); // Main Orange
-      } else if (today.isAfter(endDate)) {
-        statusText = '여행 종료';
-        backgroundColor = Colors.grey.shade200;
-        textColor = Colors.grey.shade600;
-      } else {
-        statusText = '여행 중';
-        backgroundColor = Colors.blue.shade100;
-        textColor = Colors.blue.shade800;
-      }
-
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          statusText,
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
-      );
-    } catch (e) {
-      return const SizedBox.shrink(); // 날짜 파싱 오류 시 빈 위젯 반환
+    if (today.isBefore(startDate)) {
+      final difference = startDate.difference(today).inDays;
+      statusText = 'D-$difference';
+      backgroundColor = const Color(0xFFFFEFE5);
+      textColor = const Color(0xFFFF6000);
+    } else if (today.isAfter(endDate)) {
+      statusText = '여행 종료';
+      backgroundColor = Colors.grey.shade200;
+      textColor = Colors.grey.shade600;
+    } else {
+      statusText = '여행 중';
+      backgroundColor = Colors.blue.shade100;
+      textColor = Colors.blue.shade800;
     }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        statusText,
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
+    );
   }
 
   @override
@@ -142,8 +91,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       endDrawer: InvitationDrawer(
-        userId: widget.userId,
-        onInvitationHandled: _fetchUserRooms,
+        userId: widget.userId, // ViewModel을 통해 초대 목록을 가져오도록 수정 필요
+        onInvitationHandled: () => _viewModel.fetchAllData(),
       ),
       body: SafeArea(
         child: Column(
@@ -166,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-            // 정렬 옵션
+            // 정렬 옵션 드롭다운
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
               child: Row(
@@ -184,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onChanged: (val) {
                       setState(() {
                         _sortOption = val!;
-                        _fetchUserRooms(); // 정렬 옵션 변경 시 다시 정렬
+                        // ViewModel에서 정렬 로직 수행하도록 수정 필요
                       });
                     },
                   ),
@@ -192,23 +141,36 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // 방 리스트
+            // 여행방 리스트
             Expanded(
-              child: isLoading
+              child: _viewModel.isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : rooms.isEmpty
+                  : _viewModel.rooms.isEmpty
                   ? const Center(child: Text('참여 중인 여행방이 없습니다.'))
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: rooms.length,
+                      itemCount: _viewModel.rooms.length,
                       itemBuilder: (context, index) {
-                        final room = rooms[index];
+                        // 정렬 로직
+                        final sortedRooms = List<Room>.from(_viewModel.rooms);
+                        sortedRooms.sort((a, b) {
+                          if (_sortOption == '최신순') {
+                            return b.createdAt.compareTo(a.createdAt);
+                          } else if (_sortOption == '오래된 순') {
+                            return a.createdAt.compareTo(b.createdAt);
+                          } else if (_sortOption == '가나다 순') {
+                            return a.title.compareTo(b.title);
+                          }
+                          return 0;
+                        });
+
+                        final room = sortedRooms[index];
                         return _buildTravelRoomCard(room);
                       },
                     ),
             ),
 
-            // 하단 네비
+            // 하단 네비게이션 바
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Container(
@@ -237,8 +199,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             'id': widget.id,
                           },
                         );
-                        // 방 생성이 완료되면 (true가 반환되면) 목록을 새로고침합니다.
-                        if (result == true) _fetchUserRooms();
+                        // 방 생성이 완료되면 목록을 새로고침
+                        if (result == true) _viewModel.fetchRooms();
                       },
                     ),
                     IconButton(
@@ -262,14 +224,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTravelRoomCard(dynamic room) {
+  Widget _buildTravelRoomCard(Room room) {
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(
           context,
           '/room_detail',
           arguments: {
-            'roomId': room['_id'],
+            'roomId': room.id,
             'userId': widget.userId,
             'nickname': widget.nickname,
             'id': widget.id,
@@ -283,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
           side: const BorderSide(color: Color(0xFFFF6000), width: 1),
         ),
         color: Colors.white,
-        clipBehavior: Clip.antiAlias, // 이미지가 Card 밖으로 나가지 않도록
+        clipBehavior: Clip.antiAlias, // 이미지가 카드 밖으로 나가지 않도록 처리
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -294,9 +256,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 80,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: room['imageId'] != null
+                  child: room.imageId != null
                       ? Image.network(
-                          '$kBaseUrl/api/images/${room['imageId']}',
+                          'http://127.0.0.1:5000/api/images/${room.imageId}',
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(color: Colors.grey[300]),
@@ -315,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            room['title'] ?? '제목 없음',
+                            room.title,
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -324,12 +286,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _buildDdayStatus(room['startDate'], room['endDate']),
+                        _buildDdayStatus(room.startDate, room.endDate),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${room['country'] ?? ''} / ${room['startDate'] ?? ''} ~ ${room['endDate'] ?? ''}',
+                      '${room.country} / ${DateFormat('yyyy.MM.dd').format(room.startDate)} ~ ${DateFormat('yyyy.MM.dd').format(room.endDate)}',
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.black54,

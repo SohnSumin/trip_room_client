@@ -31,7 +31,7 @@ class _PeopleCardState extends State<PeopleCard> {
   bool get _isOwner => widget.currentUserId == widget.ownerLoginId;
 
   Future<void> _removeMember(Map<String, dynamic> member) async {
-    Navigator.pop(context); // Close the bottom sheet
+    Navigator.pop(context); // 하단 시트 닫기
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -56,7 +56,7 @@ class _PeopleCardState extends State<PeopleCard> {
       final response = await http.post(
         Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}/remove_member'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'userId': member['id']}), // 'userId'를 'id'로 변경
+        body: jsonEncode({'userId': member['id']}),
       );
 
       if (response.statusCode == 200) {
@@ -78,7 +78,7 @@ class _PeopleCardState extends State<PeopleCard> {
   }
 
   Future<void> _changeOwner(Map<String, dynamic> member) async {
-    Navigator.pop(context); // Close the bottom sheet
+    Navigator.pop(context); // 하단 시트 닫기
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -103,9 +103,7 @@ class _PeopleCardState extends State<PeopleCard> {
       final response = await http.post(
         Uri.parse('$kBaseUrl/api/rooms/${widget.roomId}/change_owner'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'newOwnerId': member['id'],
-        }), // 'newOwnerId'의 값도 'id'로 변경
+        body: jsonEncode({'newOwnerId': member['id']}),
       );
 
       if (response.statusCode == 200) {
@@ -134,7 +132,7 @@ class _PeopleCardState extends State<PeopleCard> {
       return;
     }
 
-    Navigator.pop(context); // Close the dialog
+    Navigator.pop(context); // 다이얼로그 닫기
 
     try {
       final response = await http.post(
@@ -166,17 +164,13 @@ class _PeopleCardState extends State<PeopleCard> {
       builder: (context) => SafeArea(
         child: Wrap(
           children: <Widget>[
-            if (_isOwner &&
-                member['_id'] !=
-                    widget.ownerId) // 조건문은 고유 ID(_id)로 비교하는 것이 맞습니다.
+            if (_isOwner && member['_id'] != widget.ownerId)
               ListTile(
                 leading: const Icon(Icons.person_remove),
                 title: const Text('추방하기'),
                 onTap: () => _removeMember(member),
               ),
-            if (_isOwner &&
-                member['_id'] !=
-                    widget.ownerId) // 조건문은 고유 ID(_id)로 비교하는 것이 맞습니다.
+            if (_isOwner && member['_id'] != widget.ownerId)
               ListTile(
                 leading: const Icon(Icons.admin_panel_settings),
                 title: const Text('방장 위임하기'),
@@ -238,7 +232,7 @@ class _PeopleCardState extends State<PeopleCard> {
                     color: Color(0xFFFF6000),
                   ),
                 ),
-                // 멤버 초대는 누구나 할 수 있도록 수정
+                // 멤버 초대 버튼
                 IconButton(
                   icon: const Icon(Icons.add, size: 24),
                   onPressed: _showInviteDialog,

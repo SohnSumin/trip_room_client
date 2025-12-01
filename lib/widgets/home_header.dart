@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../config/app_config.dart';
+import 'package:trip_room_client/viewmodels/home_header_view_model.dart';
 
 class HomeHeader extends StatefulWidget {
   final String userId;
@@ -23,48 +20,38 @@ class HomeHeader extends StatefulWidget {
 }
 
 class _HomeHeaderState extends State<HomeHeader> {
-  bool _hasInvitations = false;
+  late final HomeHeaderViewModel _viewModel;
 
-  // 메뉴 선택 시 처리 로직
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = HomeHeaderViewModel(userId: widget.userId);
+    _viewModel.addListener(_onViewModelUpdated);
+  }
+
+  @override
+  void dispose() {
+    _viewModel.removeListener(_onViewModelUpdated);
+    super.dispose();
+  }
+
+  void _onViewModelUpdated() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  // 메뉴 선택 처리
   void _onMenuSelected(String value, BuildContext context) async {
     if (value == 'logout') {
-      // 로그아웃 처리
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear(); // 저장된 모든 데이터 삭제 (로그인 정보 등)
+      await _viewModel.logout();
 
-      // 로그인 화면으로 이동하고, 이전 화면 기록을 모두 제거
+      // 시작 화면으로 이동하고 이전 화면 기록을 모두 제거
       if (context.mounted) {
         Navigator.of(
           context,
         ).pushNamedAndRemoveUntil('/start', (route) => false);
       }
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _checkInvitations();
-  }
-
-  Future<void> _checkInvitations() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$kBaseUrl/api/rooms/invited/${widget.userId}'),
-      );
-      if (response.statusCode == 200) {
-        final List<dynamic> invitedRooms = jsonDecode(
-          utf8.decode(response.bodyBytes),
-        );
-        if (mounted) {
-          setState(() {
-            _hasInvitations = invitedRooms.isNotEmpty;
-          });
-        }
-      }
-    } catch (e) {
-      // 네트워크 오류 등 예외 처리
-      // 여기서는 뱃지를 표시하지 않는 것으로 조용히 처리
     }
   }
 
@@ -87,9 +74,7 @@ class _HomeHeaderState extends State<HomeHeader> {
               children: [
                 const CircleAvatar(
                   radius: 14,
-                  backgroundImage: AssetImage(
-                    'assets/profile_placeholder.jpg',
-                  ), //일단은 jpg로 고정
+                  backgroundImage: AssetImage('assets/profile_placeholder.jpg'),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -117,11 +102,11 @@ class _HomeHeaderState extends State<HomeHeader> {
                   color: Color(0xFFFF6000),
                 ),
                 onPressed: () {
-                  _checkInvitations(); // 드로어를 열 때마다 초대 목록을 다시 확인
+                  _viewModel.checkInvitations(); // 알림 아이콘 클릭 시 초대 목록을 다시 확인
                   Scaffold.of(context).openEndDrawer();
                 },
               ),
-              if (_hasInvitations)
+              if (_viewModel.hasInvitations)
                 Positioned(
                   right: 11,
                   top: 11,

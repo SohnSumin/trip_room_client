@@ -36,7 +36,7 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
     _fetchAIFeedback();
   }
 
-  // SharedPreferences에 피드백 저장
+  // SharedPreferences에 피드백 기록 저장
   Future<void> _saveFeedbackToHistory(
     String feedbackMessage,
     List<String> changes,
@@ -44,18 +44,18 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
     final prefs = await SharedPreferences.getInstance();
     final historyKey = 'feedback_history_${widget.roomId}';
 
-    // 1. 기존 기록 불러오기
+    // 기존 기록 불러오기
     final String? historyJson = prefs.getString(historyKey);
     List<dynamic> history = historyJson != null ? json.decode(historyJson) : [];
 
-    // 2. 새 피드백을 목록 맨 위에 추가
+    // 새 피드백을 목록 맨 위에 추가
     history.insert(0, {
       'timestamp': DateTime.now().toIso8601String(),
       'feedback_message': feedbackMessage,
       'changes': changes,
     });
 
-    // 3. 기록 개수를 10개로 제한 (선택 사항)
+    // 기록 개수를 10개로 제한
     if (history.length > 10) {
       history = history.sublist(0, 10);
     }
@@ -66,7 +66,7 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
 
   Future<void> _fetchAIFeedback() async {
     try {
-      // 단계별 메시지 업데이트
+      // 로딩 메시지 단계별 업데이트
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted && _loadingMessage.isNotEmpty)
           setState(() => _loadingMessage = 'Gemini AI가 일정을 분석하고 있습니다...');
@@ -88,7 +88,7 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
           setState(() {
             _feedbackMessage = data['feedback_message'];
             _changes = List<String>.from(data['changes'] ?? []);
-            // 성공 시 피드백 기록 저장
+            // 성공 시 피드백 기록을 저장
             if (_feedbackMessage != null) {
               _saveFeedbackToHistory(_feedbackMessage!, _changes ?? []);
             }
@@ -102,7 +102,7 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
           final errorData = jsonDecode(body);
           errorMessage = errorData['error'] ?? errorMessage;
         } else {
-          // HTML 오류 페이지 등이 온 경우, 상태 코드를 기반으로 메시지 표시
+          // HTML 오류 페이지 등이 온 경우 상태 코드를 기반으로 메시지 표시
           errorMessage = '오류가 발생했습니다 (상태 코드: ${response.statusCode})';
         }
         throw Exception(errorMessage);
@@ -111,7 +111,7 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
     }
     if (mounted) {
-      setState(() => _loadingMessage = ''); // 로딩 완료
+      setState(() => _loadingMessage = ''); // 로딩 완료 처리
     }
   }
 
@@ -121,7 +121,7 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. 배경 이미지
+          // 배경 이미지
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -134,7 +134,7 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
               ),
             ),
           ),
-          // 2. 메인 콘텐츠
+          // 메인 콘텐츠
           SafeArea(
             child: Column(
               children: [
@@ -196,7 +196,9 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(true), // true 반환하여 새로고침
+          // 확인 버튼
+          onPressed: () =>
+              Navigator.of(context).pop(true), // true를 반환하여 이전 화면에서 새로고침
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFFF6000),
             foregroundColor: Colors.white,
