@@ -66,52 +66,82 @@ class _ScheduleFeedbackScreenState extends State<ScheduleFeedbackScreen> {
 
   Future<void> _fetchAIFeedback() async {
     try {
-      // 단계별 메시지 업데이트
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted && _loadingMessage.isNotEmpty)
-          setState(() => _loadingMessage = 'Gemini AI가 일정을 분석하고 있습니다...');
+      setState(() {
+        _loadingMessage = 'AI 피드백을 요청하는 중입니다...';
+        _errorMessage = null;
       });
 
-      final response = await http.post(
+      // 1️⃣ POST 요청으로 AI 처리 시작
+      final postResponse = await http.post(
         Uri.parse(
           '$kBaseUrl/api/rooms/${widget.roomId}/schedule/feedback/auto',
         ),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
       );
 
-      final contentType = response.headers['content-type'];
-      final body = utf8.decode(response.bodyBytes);
-
-      if (response.statusCode == 200) {
-        if (contentType != null && contentType.contains('application/json')) {
-          final data = jsonDecode(body);
-          setState(() {
-            _feedbackMessage = data['feedback_message'];
-            _changes = List<String>.from(data['changes'] ?? []);
-            // 성공 시 피드백 기록 저장
-            if (_feedbackMessage != null) {
-              _saveFeedbackToHistory(_feedbackMessage!, _changes ?? []);
-            }
-          });
-        } else {
-          throw Exception('서버로부터 유효하지 않은 형식의 응답을 받았습니다.');
-        }
+      if (postResponse.statusCode == 202) {
+        // 2️⃣ 백그라운드 처리 중 → 폴링 시작
+        setState(() {
+          _loadingMessage = 'Gemini AI가 일정을 분석하고 있습니다...';
+        });
+        _pollForFeedback();
       } else {
-        String errorMessage = 'AI 피드백을 가져오는데 실패했습니다.';
-        if (contentType != null && contentType.contains('application/json')) {
-          final errorData = jsonDecode(body);
-          errorMessage = errorData['error'] ?? errorMessage;
-        } else {
-          // HTML 오류 페이지 등이 온 경우, 상태 코드를 기반으로 메시지 표시
-          errorMessage = '오류가 발생했습니다 (상태 코드: ${response.statusCode})';
-        }
-        throw Exception(errorMessage);
+        throw Exception('AI 피드백 요청 실패 (status: ${postResponse.statusCode})');
       }
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _loadingMessage = '';
+      });
     }
-    if (mounted) {
-      setState(() => _loadingMessage = ''); // 로딩 완료
+  }
+
+  // 폴링 함수
+  void _pollForFeedback({int retryCount = 0}) async {
+    const maxRetries = 30; // 최대 30회 (~30초)
+    const delaySec = 1;
+
+    await Future.delayed(Duration(seconds: delaySec));
+
+    try {
+      final getResponse = await http.get(
+        Uri.parse(
+          '$kBaseUrl/api/rooms/${widget.roomId}/schedule/feedback/latest',
+        ),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      );
+
+      if (getResponse.statusCode == 200) {
+        // AI 처리 완료 → 결과 표시
+        _handleFeedbackResponse(getResponse);
+      } else if (getResponse.statusCode == 202 && retryCount < maxRetries) {
+        // 아직 처리 중 → 재시도
+        _pollForFeedback(retryCount: retryCount + 1);
+      } else {
+        throw Exception('AI 피드백을 가져오는데 실패했습니다.');
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _loadingMessage = '';
+      });
+    }
+  }
+
+  // 공통 처리 함수
+  void _handleFeedbackResponse(http.Response response) {
+    final body = utf8.decode(response.bodyBytes);
+    final data = jsonDecode(body);
+
+    setState(() {
+      _feedbackMessage = data['feedback_message'];
+      _changes = List<String>.from(data['changes'] ?? []);
+      _loadingMessage = '';
+    });
+
+    // 기록 저장
+    if (_feedbackMessage != null) {
+      _saveFeedbackToHistory(_feedbackMessage!, _changes ?? []);
     }
   }
 
