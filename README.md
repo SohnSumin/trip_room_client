@@ -43,19 +43,19 @@ TripRoom Client
 
 ## 실행 방법
 
-# 프로젝트 클론
+### 프로젝트 클론
 
 - git clone [your-repository-url]
 
-# 프로젝트 디렉터리 이동
+### 프로젝트 디렉터리 이동
 
 - cd trip_room_client
 
-# 패키지 설치
+### 패키지 설치
 
 - flutter pub get
 
-# 에뮬레이터 또는 기기에서 실행
+### 에뮬레이터 또는 기기에서 실행
 
 - flutter run
 
